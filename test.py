@@ -294,7 +294,7 @@ for h in hashes:
         p2p.DaemonRunning = False
         daemon.kill()
 
-started = time.time()
+started = time.asctime(time.localtime(time.time()))
 
 time.sleep(5)
 p2p.CheckP2P(b.getHash(), hosts)
@@ -309,13 +309,36 @@ for i in hosts:
     r=result.Result(i)
     p.setResult(r)
     p.setIP(i)
-    b=p.run()
-    if b==True:
+    bo=p.run()
+    if bo==True:
         print("PING for",i,"is done")
-        print('\n')
+
     print("\nRESULTS of",i,":\n")
     p.r.produce()
     print('\n')
 
-print("End")
+destroyInProgress = False
+print("Destroying environment")
+rc = b.destroy(envName)
+if rc != True:
+    print("Failed to destroy environment")
+    exit(5)
+else:
+    print("Destroy process has been started")
+    destroyInProgress = True
+
+if destroyInProgress == True:
+    attempts = 0
+    while destroyInProgress == True:
+        time.sleep(destroyWaitPeriod)
+        b.environments()
+        if b.isEnvExists(envName) == True:
+            attempts = attempts + 1
+        else:
+            print("Environment was destroyed")
+            destroyInProgress = False
+        if attempts > maxDestroyWait / destroyWaitPeriod:
+            print("Destroy failed after " + maxDestroyWait + " seconds timeout")
+            exit(6)
+print("\nEnd")
 exit(0)
